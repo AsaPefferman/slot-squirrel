@@ -59,7 +59,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
           <div className="space-y-4">
             <div className="flex flex-col items-start">
               <h3 className="text-lg font-semibold">{session.name}</h3>
-              <p className="text-lg text-foreground">
+              <p className="text-sm text-muted-foreground">
                 {formatTime(session.startTime)}-{formatTime(session.endTime)}
               </p>
             </div>
