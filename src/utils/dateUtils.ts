@@ -9,6 +9,10 @@ export const formatDate = (date: Date): string => {
   return format(date, 'EEE, MMM d');
 };
 
+export const formatFullDate = (date: Date): string => {
+  return format(date, 'EEEE, MMMM do');
+};
+
 export const formatWeekRange = (startDate: Date): string => {
   const endDate = new Date(startDate);
   endDate.setDate(endDate.getDate() + 6);
@@ -34,4 +38,15 @@ export const isToday = (date: Date): boolean => {
 export const formatDuration = (startTime: Date, endTime: Date): string => {
   const minutes = differenceInMinutes(endTime, startTime);
   return `${minutes} min`;
+};
+
+export const calculateAvailableMinutes = (sessionStart: Date, sessionEnd: Date, bookedSlots: { startTime: Date, endTime: Date }[]): number => {
+  const totalSessionMinutes = differenceInMinutes(sessionEnd, sessionStart);
+  
+  // Calculate total booked minutes
+  const bookedMinutes = bookedSlots.reduce((total, slot) => {
+    return total + differenceInMinutes(slot.endTime, slot.startTime);
+  }, 0);
+  
+  return totalSessionMinutes - bookedMinutes;
 };

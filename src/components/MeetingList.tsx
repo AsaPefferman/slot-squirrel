@@ -6,19 +6,18 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { User, Clock, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { differenceInMinutes } from 'date-fns';
 
 const MeetingList: React.FC = () => {
   const { timeSlots } = useMeetingContext();
   
-  // Sort slots chronologically and filter to only show booked slots
-  const bookedSlots = timeSlots
-    .filter(slot => !!slot.attendee)
-    .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+  // Sort slots chronologically
+  const sortedSlots = [...timeSlots].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   
-  const upcomingSlots = bookedSlots.filter(slot => !isSlotInPast(slot.startTime));
-  const pastSlots = bookedSlots.filter(slot => isSlotInPast(slot.startTime));
+  const upcomingSlots = sortedSlots.filter(slot => !isSlotInPast(slot.startTime));
+  const pastSlots = sortedSlots.filter(slot => isSlotInPast(slot.startTime));
   
-  if (bookedSlots.length === 0) {
+  if (sortedSlots.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -75,6 +74,8 @@ interface SlotItemProps {
 }
 
 const SlotItem: React.FC<SlotItemProps> = ({ slot, isPast = false }) => {
+  const duration = differenceInMinutes(slot.endTime, slot.startTime);
+  
   return (
     <div 
       className={cn(
@@ -100,7 +101,7 @@ const SlotItem: React.FC<SlotItemProps> = ({ slot, isPast = false }) => {
             </span>
           </div>
           <div className="text-xs text-muted-foreground">
-            ({formatDuration(slot.startTime, slot.endTime)})
+            ({duration} min)
           </div>
         </div>
       </div>
