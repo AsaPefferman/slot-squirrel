@@ -27,7 +27,9 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
   const { toast } = useToast();
   
   const isPast = isSlotInPast(session.startTime);
-  const isDisabled = isPast || !isCurrentWeekInFuture;
+  // For demo purposes, we're making all buttons active regardless of date/time
+  // const isDisabled = isPast || !isCurrentWeekInFuture;
+  const isDisabled = false; // Always enabled for demo
   
   const availableMinutes = getAvailableMinutes(session.id);
   const totalSessionMinutes = differenceInMinutes(session.endTime, session.startTime);
@@ -91,7 +93,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
             
             <Button 
               className="w-full"
-              disabled={isDisabled || availableMinutes === 0}
+              disabled={availableMinutes === 0} // Only disable if no time available
               onClick={() => setIsDialogOpen(true)}
             >
               Sign up
