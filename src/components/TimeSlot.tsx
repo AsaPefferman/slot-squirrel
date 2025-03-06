@@ -28,7 +28,11 @@ const TimeSlot: React.FC<TimeSlotProps> = ({ slot }) => {
   
   const handleSignUp = () => {
     if (name.trim() && topic.trim()) {
-      signUpForSlot(slot.id, name.trim(), topic.trim());
+      // Find the session ID that contains this slot
+      // We need to extract session ID from the slot ID or use a better approach
+      const sessionId = slot.id.split('-')[1]; // Assuming slot.id format includes session ID
+      
+      signUpForSlot(sessionId, slot.startTime, slot.endTime, name.trim(), topic.trim());
       setIsDialogOpen(false);
       setName('');
       setTopic('');
