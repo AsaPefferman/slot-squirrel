@@ -1,14 +1,15 @@
 
 import React, { useState } from 'react';
-import { formatTime, isSlotInPast } from '@/utils/dateUtils';
+import { formatTime, isSlotInPast, formatDuration } from '@/utils/dateUtils';
 import { useMeetingContext, TimeSlot as TimeSlotType } from '@/context/MeetingContext';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { Clock, UserPlus, UserCheck, X, User } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface TimeSlotProps {
   slot: TimeSlotType;
@@ -18,6 +19,7 @@ const TimeSlot: React.FC<TimeSlotProps> = ({ slot }) => {
   const { signUpForSlot, cancelSignUp, isCurrentWeekInFuture } = useMeetingContext();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [name, setName] = useState('');
+  const [topic, setTopic] = useState('');
   const { toast } = useToast();
   
   const isPast = isSlotInPast(slot.startTime);
@@ -25,10 +27,11 @@ const TimeSlot: React.FC<TimeSlotProps> = ({ slot }) => {
   const isBooked = !!slot.attendee;
   
   const handleSignUp = () => {
-    if (name.trim()) {
-      signUpForSlot(slot.id, name.trim());
+    if (name.trim() && topic.trim()) {
+      signUpForSlot(slot.id, name.trim(), topic.trim());
       setIsDialogOpen(false);
       setName('');
+      setTopic('');
       
       toast({
         title: "Successfully signed up!",
@@ -61,6 +64,9 @@ const TimeSlot: React.FC<TimeSlotProps> = ({ slot }) => {
             <span className="font-medium">
               {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
             </span>
+            <span className="text-xs text-muted-foreground">
+              ({formatDuration(slot.startTime, slot.endTime)})
+            </span>
           </div>
           
           {isBooked ? (
@@ -72,6 +78,12 @@ const TimeSlot: React.FC<TimeSlotProps> = ({ slot }) => {
             <span className="text-xs font-medium text-muted-foreground">Available</span>
           )}
         </div>
+        
+        {isBooked && slot.topic && (
+          <div className="mt-2 text-sm text-muted-foreground">
+            Topic: {slot.topic}
+          </div>
+        )}
         
         <div className="mt-4">
           {isBooked ? (
@@ -117,6 +129,9 @@ const TimeSlot: React.FC<TimeSlotProps> = ({ slot }) => {
             <span className="font-medium">
               {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
             </span>
+            <span className="text-xs text-muted-foreground">
+              ({formatDuration(slot.startTime, slot.endTime)})
+            </span>
           </div>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -132,11 +147,20 @@ const TimeSlot: React.FC<TimeSlotProps> = ({ slot }) => {
                 autoFocus
               />
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="topic">Topic</Label>
+              <Textarea
+                id="topic"
+                placeholder="What will you present?"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button
               onClick={handleSignUp}
-              disabled={!name.trim()}
+              disabled={!name.trim() || !topic.trim()}
             >
               Sign up
             </Button>

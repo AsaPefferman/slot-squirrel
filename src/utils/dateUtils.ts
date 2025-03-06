@@ -1,5 +1,5 @@
 
-import { format, isBefore, isAfter, isSameDay } from 'date-fns';
+import { format, isBefore, isAfter, isSameDay, differenceInMinutes } from 'date-fns';
 
 export const formatTime = (date: Date): string => {
   return format(date, 'h:mm a');
@@ -29,4 +29,9 @@ export const isSlotInPast = (startTime: Date): boolean => {
 
 export const isToday = (date: Date): boolean => {
   return isSameDay(date, new Date());
+};
+
+export const formatDuration = (startTime: Date, endTime: Date): string => {
+  const minutes = differenceInMinutes(endTime, startTime);
+  return `${minutes} min`;
 };

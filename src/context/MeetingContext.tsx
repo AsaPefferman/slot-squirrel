@@ -1,12 +1,13 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { addDays, startOfWeek, format, isSameDay, addWeeks, subWeeks } from 'date-fns';
+import { addDays, startOfWeek, format, isSameDay, addWeeks, subWeeks, getDay, setHours, setMinutes } from 'date-fns';
 
 export interface TimeSlot {
   id: string;
   startTime: Date;
   endTime: Date;
   attendee: string | null;
+  topic: string | null;
 }
 
 interface MeetingContextType {
@@ -14,7 +15,7 @@ interface MeetingContextType {
   timeSlots: TimeSlot[];
   navigateToNextWeek: () => void;
   navigateToPreviousWeek: () => void;
-  signUpForSlot: (slotId: string, name: string) => void;
+  signUpForSlot: (slotId: string, name: string, topic: string) => void;
   cancelSignUp: (slotId: string) => void;
   isCurrentWeekInFuture: boolean;
 }
@@ -44,41 +45,58 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     const newTimeSlots: TimeSlot[] = [];
     
-    // We'll create slots for Monday, Wednesday, and Friday
-    const daysOfWeek = [1, 3, 5]; // Monday, Wednesday, Friday (0 = Sunday, 1 = Monday, etc.)
+    // We'll create slots for Thursday (4 in 0-indexed days of week)
+    const thursdayOffset = 3; // Thursday is index 4, but since we start with Monday (1), it's offset 3
+    const thursday = addDays(currentWeek, thursdayOffset);
     
-    daysOfWeek.forEach(dayOffset => {
-      const day = addDays(currentWeek, dayOffset);
+    // Define the three sessions with their start and end times
+    const sessions = [
+      { 
+        name: "Session 1",
+        startHour: 9, startMinute: 35, 
+        endHour: 10, endMinute: 10 
+      },
+      { 
+        name: "Session 2",
+        startHour: 10, startMinute: 10, 
+        endHour: 10, endMinute: 45 
+      },
+      { 
+        name: "Session 3",
+        startHour: 10, startMinute: 55, 
+        endHour: 11, endMinute: 30 
+      }
+    ];
+    
+    sessions.forEach(session => {
+      // Create 10-minute slots within each session
+      const startTime = new Date(thursday);
+      startTime.setHours(session.startHour, session.startMinute, 0);
       
-      // Create 3 slots per day
-      const slotTimes = [
-        { start: 9, end: 9.5 },   // 9:00 - 9:30
-        { start: 10, end: 10.5 }, // 10:00 - 10:30
-        { start: 11, end: 11.5 }  // 11:00 - 11:30
-      ];
+      const endTime = new Date(thursday);
+      endTime.setHours(session.endHour, session.endMinute, 0);
       
-      slotTimes.forEach(({ start, end }) => {
-        const startHour = Math.floor(start);
-        const startMinute = (start - startHour) * 60;
-        const endHour = Math.floor(end);
-        const endMinute = (end - endHour) * 60;
+      let currentSlotStart = new Date(startTime);
+      
+      while (currentSlotStart < endTime) {
+        const slotEnd = new Date(currentSlotStart);
+        slotEnd.setMinutes(slotEnd.getMinutes() + 10);
         
-        const startTime = new Date(day);
-        startTime.setHours(startHour, startMinute, 0);
+        // Ensure we don't exceed the session end time
+        const actualSlotEnd = slotEnd > endTime ? endTime : slotEnd;
         
-        const endTime = new Date(day);
-        endTime.setHours(endHour, endMinute, 0);
-        
-        const id = `${format(day, 'yyyy-MM-dd')}-${startHour}-${startMinute}`;
+        const id = `${format(currentSlotStart, 'yyyy-MM-dd')}-${format(currentSlotStart, 'HH-mm')}`;
         
         // Check if this slot already exists in localStorage
         const existingSlotData = localStorage.getItem(id);
         let attendee = null;
+        let topic = null;
         
         if (existingSlotData) {
           try {
             const data = JSON.parse(existingSlotData);
             attendee = data.attendee;
+            topic = data.topic;
           } catch (e) {
             console.error('Error parsing slot data from localStorage', e);
           }
@@ -86,11 +104,14 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         
         newTimeSlots.push({
           id,
-          startTime,
-          endTime,
-          attendee
+          startTime: new Date(currentSlotStart),
+          endTime: new Date(actualSlotEnd),
+          attendee,
+          topic
         });
-      });
+        
+        currentSlotStart = slotEnd;
+      }
     });
     
     setTimeSlots(newTimeSlots);
@@ -104,24 +125,24 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setCurrentWeek(prevWeek => subWeeks(prevWeek, 1));
   };
   
-  const signUpForSlot = (slotId: string, name: string) => {
+  const signUpForSlot = (slotId: string, name: string, topic: string) => {
     setTimeSlots(prevSlots => 
       prevSlots.map(slot => 
         slot.id === slotId 
-          ? { ...slot, attendee: name } 
+          ? { ...slot, attendee: name, topic } 
           : slot
       )
     );
     
     // Save to localStorage
-    localStorage.setItem(slotId, JSON.stringify({ attendee: name }));
+    localStorage.setItem(slotId, JSON.stringify({ attendee: name, topic }));
   };
   
   const cancelSignUp = (slotId: string) => {
     setTimeSlots(prevSlots => 
       prevSlots.map(slot => 
         slot.id === slotId 
-          ? { ...slot, attendee: null } 
+          ? { ...slot, attendee: null, topic: null } 
           : slot
       )
     );

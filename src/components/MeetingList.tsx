@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useMeetingContext, TimeSlot } from '@/context/MeetingContext';
-import { formatDate, formatTime, isSlotInPast } from '@/utils/dateUtils';
+import { formatDate, formatTime, isSlotInPast, formatDuration } from '@/utils/dateUtils';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { User, Clock, Calendar } from 'lucide-react';
@@ -78,7 +78,7 @@ const SlotItem: React.FC<SlotItemProps> = ({ slot, isPast = false }) => {
   return (
     <div 
       className={cn(
-        "flex items-center gap-4 p-3 rounded-lg border",
+        "flex items-start gap-4 p-3 rounded-lg border",
         isPast ? "bg-muted/30" : "bg-card"
       )}
     >
@@ -87,7 +87,8 @@ const SlotItem: React.FC<SlotItemProps> = ({ slot, isPast = false }) => {
       </div>
       <div className="flex-grow">
         <div className="font-medium">{slot.attendee}</div>
-        <div className="flex items-center gap-4 mt-1">
+        <div className="text-sm text-muted-foreground mt-1">{slot.topic}</div>
+        <div className="flex items-center gap-4 mt-2">
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" />
             <span>{formatDate(slot.startTime)}</span>
@@ -97,6 +98,9 @@ const SlotItem: React.FC<SlotItemProps> = ({ slot, isPast = false }) => {
             <span>
               {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
             </span>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            ({formatDuration(slot.startTime, slot.endTime)})
           </div>
         </div>
       </div>
