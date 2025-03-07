@@ -8,7 +8,7 @@ export interface TimeSlot {
   endTime: Date;
   attendee: string | null;
   topic: string | null;
-  category: string | null;
+  categories: string[] | null;
 }
 
 export interface Session {
@@ -26,7 +26,7 @@ interface MeetingContextType {
   canceledDates: Date[];
   navigateToNextWeek: () => void;
   navigateToPreviousWeek: () => void;
-  signUpForSlot: (sessionId: string, startTime: Date, endTime: Date, name: string, topic: string, category: string | null) => void;
+  signUpForSlot: (sessionId: string, startTime: Date, endTime: Date, name: string, topic: string, categories: string[] | null) => void;
   cancelSignUp: (slotId: string) => void;
   cancelSession: (date: Date, restore?: boolean) => void;
   isCurrentWeekInFuture: boolean;
@@ -46,7 +46,18 @@ export const useMeetingContext = () => {
 export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentWeek, setCurrentWeek] = useState<Date>(() => {
     const today = new Date();
-    return startOfWeek(today, { weekStartsOn: 1 }); // Start on Monday
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Start on Monday
+    
+    // If it's past 11:30 AM on Thursday, show next week by default
+    const thursday = addDays(weekStart, 3); // Thursday is index 3 from Monday
+    const thursdayCutoff = new Date(thursday);
+    thursdayCutoff.setHours(11, 30, 0, 0);
+    
+    if (today >= thursdayCutoff && getDay(today) >= 4) { // If past 11:30 AM on Thursday
+      return addWeeks(weekStart, 1); // Show next week
+    }
+    
+    return weekStart;
   });
   
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -63,16 +74,12 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return [];
   });
   
-  // Check if current week is in the future or present
   const isCurrentWeekInFuture = currentWeek >= startOfWeek(new Date(), { weekStartsOn: 1 });
   
-  // Generate sessions and time slots for the current week
   useEffect(() => {
-    // We'll create slots for Thursday (4 in 0-indexed days of week)
     const thursdayOffset = 3; // Thursday is index 4, but since we start with Monday (1), it's offset 3
     const thursday = addDays(currentWeek, thursdayOffset);
     
-    // Define the three sessions with their start and end times
     const sessionDefinitions = [
       { 
         name: "Session 1",
@@ -104,7 +111,6 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const sessionId = `session-${format(sessionStartTime, 'yyyy-MM-dd')}-${format(sessionStartTime, 'HH-mm')}`;
       const sessionSlots: TimeSlot[] = [];
       
-      // Load existing slots from localStorage
       const existingSlots = loadSlotsFromLocalStorage(sessionStartTime, sessionEndTime);
       
       newTimeSlots.push(...existingSlots);
@@ -138,7 +144,7 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
             endTime: new Date(slotData.endTime),
             attendee: slotData.attendee,
             topic: slotData.topic,
-            category: slotData.category || null
+            categories: slotData.categories || null
           });
         });
       } catch (e) {
@@ -157,7 +163,7 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setCurrentWeek(prevWeek => subWeeks(prevWeek, 1));
   };
   
-  const signUpForSlot = (sessionId: string, startTime: Date, endTime: Date, name: string, topic: string, category: string | null = null) => {
+  const signUpForSlot = (sessionId: string, startTime: Date, endTime: Date, name: string, topic: string, categories: string[] | null = null) => {
     const slotId = `slot-${format(startTime, 'yyyy-MM-dd')}-${format(startTime, 'HH-mm')}-${format(endTime, 'HH-mm')}`;
     
     const newSlot: TimeSlot = {
@@ -166,10 +172,9 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       endTime: new Date(endTime),
       attendee: name,
       topic: topic,
-      category: category
+      categories: categories
     };
     
-    // Update sessions
     const updatedSessions = sessions.map(session => {
       if (session.id === sessionId) {
         return {
@@ -180,13 +185,11 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return session;
     });
     
-    // Update time slots
     const updatedTimeSlots = [...timeSlots, newSlot];
     
     setSessions(updatedSessions);
     setTimeSlots(updatedTimeSlots);
     
-    // Save to localStorage
     const sessionToUpdate = updatedSessions.find(s => s.id === sessionId);
     if (sessionToUpdate) {
       localStorage.setItem(sessionId, JSON.stringify({
@@ -196,25 +199,22 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           endTime: slot.endTime.toISOString(),
           attendee: slot.attendee,
           topic: slot.topic,
-          category: slot.category
+          categories: slot.categories
         }))
       }));
     }
   };
   
   const cancelSignUp = (slotId: string) => {
-    // Find the slot to remove
     const slotToRemove = timeSlots.find(slot => slot.id === slotId);
     if (!slotToRemove) return;
     
-    // Find the session containing this slot
     const sessionContainingSlot = sessions.find(session => 
       session.slots.some(slot => slot.id === slotId)
     );
     
     if (!sessionContainingSlot) return;
     
-    // Update sessions
     const updatedSessions = sessions.map(session => {
       if (session.id === sessionContainingSlot.id) {
         return {
@@ -225,13 +225,11 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return session;
     });
     
-    // Update time slots
     const updatedTimeSlots = timeSlots.filter(slot => slot.id !== slotId);
     
     setSessions(updatedSessions);
     setTimeSlots(updatedTimeSlots);
     
-    // Update localStorage
     const sessionToUpdate = updatedSessions.find(s => s.id === sessionContainingSlot.id);
     if (sessionToUpdate) {
       localStorage.setItem(sessionContainingSlot.id, JSON.stringify({
@@ -241,14 +239,13 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           endTime: slot.endTime.toISOString(),
           attendee: slot.attendee,
           topic: slot.topic,
-          category: slot.category
+          categories: slot.categories
         }))
       }));
     }
   };
   
   const cancelSession = (date: Date, restore: boolean = false) => {
-    // Check if the date is already canceled
     const isCanceled = canceledDates.some(canceledDate => 
       isSameDay(canceledDate, date)
     );
@@ -256,21 +253,17 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     let updatedCanceledDates: Date[];
     
     if (restore && isCanceled) {
-      // Remove from canceled dates
       updatedCanceledDates = canceledDates.filter(canceledDate => 
         !isSameDay(canceledDate, date)
       );
     } else if (!restore && !isCanceled) {
-      // Add to canceled dates
       updatedCanceledDates = [...canceledDates, date];
     } else {
-      // No change needed
       return;
     }
     
     setCanceledDates(updatedCanceledDates);
     
-    // Save to localStorage
     localStorage.setItem('canceledSessions', JSON.stringify(
       updatedCanceledDates.map(date => date.toISOString())
     ));

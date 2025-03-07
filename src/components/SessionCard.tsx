@@ -45,7 +45,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
   const [name, setName] = useState('');
   const [topic, setTopic] = useState('');
   const [duration, setDuration] = useState(10); // Default to 10 minutes
-  const [category, setCategory] = useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [editingSlot, setEditingSlot] = useState<string | null>(null);
   const [slotToDelete, setSlotToDelete] = useState<string | null>(null);
   const { toast } = useToast();
@@ -68,7 +68,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
         cancelSignUp(editingSlot);
       }
       
-      signUpForSlot(session.id, startTime, endTime, name.trim(), topic.trim(), category);
+      signUpForSlot(session.id, startTime, endTime, name.trim(), topic.trim(), selectedCategories.length > 0 ? selectedCategories : null);
       setIsDialogOpen(false);
       setEditingSlot(null);
       resetForm();
@@ -84,7 +84,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
     setName('');
     setTopic('');
     setDuration(10);
-    setCategory(null);
+    setSelectedCategories([]);
   };
   
   const handleEdit = (slotId: string) => {
@@ -93,7 +93,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
       setName(slotToEdit.attendee || '');
       setTopic(slotToEdit.topic || '');
       setDuration(differenceInMinutes(slotToEdit.endTime, slotToEdit.startTime));
-      setCategory(slotToEdit.category || null);
+      setSelectedCategories(slotToEdit.categories || []);
       setEditingSlot(slotId);
       setIsDialogOpen(true);
     }
@@ -126,9 +126,19 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
     setIsDialogOpen(true);
   };
 
-  const getCategoryById = (categoryId: string | null) => {
-    if (!categoryId) return null;
-    return CATEGORIES.find(cat => cat.id === categoryId) || null;
+  const toggleCategory = (categoryId: string) => {
+    setSelectedCategories(prev => {
+      if (prev.includes(categoryId)) {
+        return prev.filter(id => id !== categoryId);
+      } else {
+        return [...prev, categoryId];
+      }
+    });
+  };
+
+  const getCategoriesById = (categoryIds: string[] | null) => {
+    if (!categoryIds || categoryIds.length === 0) return [];
+    return CATEGORIES.filter(cat => categoryIds.includes(cat.id));
   };
   
   return (
@@ -152,8 +162,8 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
             {session.slots.length > 0 ? (
               <div className="space-y-3 mt-4">
                 {session.slots.map((slot, index) => {
-                  const slotCategory = getCategoryById(slot.category);
-                  const CategoryIcon = slotCategory?.icon;
+                  const slotCategories = getCategoriesById(slot.categories);
+                  const isSlotPast = isSlotInPast(slot.startTime);
                   
                   return (
                     <div 
@@ -172,37 +182,44 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
                           ({differenceInMinutes(slot.endTime, slot.startTime)} min)
                         </div>
                         
-                        {slotCategory && (
-                          <div className="mt-1.5">
-                            <span className={cn(
-                              "inline-flex items-center px-2 py-0.5 rounded-full text-xs gap-1",
-                              slotCategory.color
-                            )}>
-                              {CategoryIcon && <CategoryIcon className="h-3 w-3" />}
-                              {slotCategory.label}
-                            </span>
+                        {slotCategories.length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {slotCategories.map(category => (
+                              <span 
+                                key={category.id}
+                                className={cn(
+                                  "inline-flex items-center px-2 py-0.5 rounded-full text-xs gap-1",
+                                  category.color
+                                )}
+                              >
+                                {category.icon && <category.icon className="h-3 w-3" />}
+                                {category.label}
+                              </span>
+                            ))}
                           </div>
                         )}
                       </div>
                       
-                      <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-7 w-7"
-                          onClick={() => handleEdit(slot.id)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-7 w-7 text-destructive"
-                          onClick={() => handleDeleteClick(slot.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                      {!isSlotPast && (
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7"
+                            onClick={() => handleEdit(slot.id)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-destructive"
+                            onClick={() => handleDeleteClick(slot.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -262,16 +279,16 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
               />
             </div>
             <div className="grid gap-2">
-              <Label>Relevant to</Label>
+              <Label>Relevant to (select multiple)</Label>
               <div className="flex flex-wrap gap-2">
                 {CATEGORIES.map(cat => (
                   <button
                     key={cat.id}
                     type="button"
-                    onClick={() => setCategory(cat.id === category ? null : cat.id)}
+                    onClick={() => toggleCategory(cat.id)}
                     className={cn(
                       "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors",
-                      category === cat.id 
+                      selectedCategories.includes(cat.id) 
                         ? cat.color
                         : "bg-muted hover:bg-muted/80"
                     )}
