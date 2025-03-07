@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Session, useMeetingContext } from '@/context/MeetingContext';
 import { formatTime, isSlotInPast } from '@/utils/dateUtils';
@@ -151,12 +150,6 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
               <p className="text-sm text-muted-foreground">
                 {formatTime(session.startTime)}-{formatTime(session.endTime)}
               </p>
-              <div className="text-xs text-muted-foreground mt-1">
-                <span className="inline-flex items-center">
-                  <span className="font-medium">Category:</span>
-                  <span className="ml-1">General</span>
-                </span>
-              </div>
             </div>
             
             {session.slots.length > 0 ? (
@@ -329,7 +322,6 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation dialog for deletion */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
