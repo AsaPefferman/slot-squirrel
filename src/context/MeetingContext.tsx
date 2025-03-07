@@ -23,10 +23,12 @@ interface MeetingContextType {
   currentWeek: Date;
   sessions: Session[];
   timeSlots: TimeSlot[];
+  canceledDates: Date[];
   navigateToNextWeek: () => void;
   navigateToPreviousWeek: () => void;
   signUpForSlot: (sessionId: string, startTime: Date, endTime: Date, name: string, topic: string) => void;
   cancelSignUp: (slotId: string) => void;
+  cancelSession: (date: Date, restore?: boolean) => void;
   isCurrentWeekInFuture: boolean;
   getAvailableMinutes: (sessionId: string) => number;
 }
@@ -49,6 +51,17 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   
   const [sessions, setSessions] = useState<Session[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [canceledDates, setCanceledDates] = useState<Date[]>(() => {
+    const storedCanceled = localStorage.getItem('canceledSessions');
+    if (storedCanceled) {
+      try {
+        return JSON.parse(storedCanceled).map((dateStr: string) => new Date(dateStr));
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
   
   // Check if current week is in the future or present
   const isCurrentWeekInFuture = currentWeek >= startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -230,6 +243,35 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
   
+  const cancelSession = (date: Date, restore: boolean = false) => {
+    // Check if the date is already canceled
+    const isCanceled = canceledDates.some(canceledDate => 
+      isSameDay(canceledDate, date)
+    );
+    
+    let updatedCanceledDates: Date[];
+    
+    if (restore && isCanceled) {
+      // Remove from canceled dates
+      updatedCanceledDates = canceledDates.filter(canceledDate => 
+        !isSameDay(canceledDate, date)
+      );
+    } else if (!restore && !isCanceled) {
+      // Add to canceled dates
+      updatedCanceledDates = [...canceledDates, date];
+    } else {
+      // No change needed
+      return;
+    }
+    
+    setCanceledDates(updatedCanceledDates);
+    
+    // Save to localStorage
+    localStorage.setItem('canceledSessions', JSON.stringify(
+      updatedCanceledDates.map(date => date.toISOString())
+    ));
+  };
+  
   const getAvailableMinutes = (sessionId: string): number => {
     const session = sessions.find(s => s.id === sessionId);
     if (!session) return 0;
@@ -246,10 +288,12 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       currentWeek,
       sessions,
       timeSlots,
+      canceledDates,
       navigateToNextWeek,
       navigateToPreviousWeek,
       signUpForSlot,
       cancelSignUp,
+      cancelSession,
       isCurrentWeekInFuture,
       getAvailableMinutes
     }}>

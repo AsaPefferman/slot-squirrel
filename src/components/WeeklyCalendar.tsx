@@ -9,6 +9,7 @@ import { addDays } from 'date-fns';
 import SessionCard from '@/components/SessionCard';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { cn } from '@/lib/utils';
+import SessionManagement from '@/components/SessionManagement';
 
 const WeeklyCalendar: React.FC = () => {
   const { 
@@ -24,28 +25,30 @@ const WeeklyCalendar: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-center mb-8">
-        <h2 className="text-2xl font-semibold tracking-tight text-center">
-          {formatFullDate(thursday)}
-        </h2>
-        <div className="flex items-center gap-2 ml-4">
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center">
           <Button
             variant="outline"
             size="icon"
             onClick={navigateToPreviousWeek}
-            className="rounded-full w-10 h-10"
+            className="rounded-full w-10 h-10 mr-4"
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
+          <h2 className="text-2xl font-semibold tracking-tight">
+            {formatFullDate(thursday)}
+          </h2>
           <Button
             variant="outline"
             size="icon"
             onClick={navigateToNextWeek}
-            className="rounded-full w-10 h-10"
+            className="rounded-full w-10 h-10 ml-4"
           >
             <ChevronRight className="h-5 w-5" />
           </Button>
         </div>
+        
+        <SessionManagement />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

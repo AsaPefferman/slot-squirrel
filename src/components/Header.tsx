@@ -29,7 +29,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
               <rect x="15" y="11" width="2" height="2" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold">Team Meeting Scheduler</h1>
+          <h1 className="text-xl font-semibold">Spec Review Sign Up</h1>
         </div>
       </div>
     </header>
