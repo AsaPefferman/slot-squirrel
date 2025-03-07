@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { UserPlus, User, Clock, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { UserPlus, User, Clock, Pencil, Trash2, AlertTriangle, PenTool, Code, Clipboard, Database } from 'lucide-react';
 import { differenceInMinutes } from 'date-fns';
 
 // Array of gradient background colors for the signed-up slots
@@ -26,6 +26,14 @@ const SLOT_GRADIENTS = [
   'bg-gradient-to-r from-amber-50 to-orange-50',
 ];
 
+// Category definitions with their properties
+const CATEGORIES = [
+  { id: 'design', label: 'Design', icon: PenTool, color: 'bg-[#FFDEE2] text-[#D946EF]' },
+  { id: 'engineering', label: 'Engineering', icon: Code, color: 'bg-[#D3E4FD] text-[#0EA5E9]' },
+  { id: 'pm', label: 'PM', icon: Clipboard, color: 'bg-[#FDE1D3] text-[#F97316]' },
+  { id: 'data-science', label: 'Data Science', icon: Database, color: 'bg-[#E5DEFF] text-[#8B5CF6]' },
+];
+
 interface SessionCardProps {
   session: Session;
 }
@@ -37,6 +45,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
   const [name, setName] = useState('');
   const [topic, setTopic] = useState('');
   const [duration, setDuration] = useState(10); // Default to 10 minutes
+  const [category, setCategory] = useState<string | null>(null);
   const [editingSlot, setEditingSlot] = useState<string | null>(null);
   const [slotToDelete, setSlotToDelete] = useState<string | null>(null);
   const { toast } = useToast();
@@ -59,7 +68,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
         cancelSignUp(editingSlot);
       }
       
-      signUpForSlot(session.id, startTime, endTime, name.trim(), topic.trim());
+      signUpForSlot(session.id, startTime, endTime, name.trim(), topic.trim(), category);
       setIsDialogOpen(false);
       setEditingSlot(null);
       resetForm();
@@ -75,6 +84,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
     setName('');
     setTopic('');
     setDuration(10);
+    setCategory(null);
   };
   
   const handleEdit = (slotId: string) => {
@@ -83,6 +93,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
       setName(slotToEdit.attendee || '');
       setTopic(slotToEdit.topic || '');
       setDuration(differenceInMinutes(slotToEdit.endTime, slotToEdit.startTime));
+      setCategory(slotToEdit.category || null);
       setEditingSlot(slotId);
       setIsDialogOpen(true);
     }
@@ -114,6 +125,11 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
     }
     setIsDialogOpen(true);
   };
+
+  const getCategoryById = (categoryId: string | null) => {
+    if (!categoryId) return null;
+    return CATEGORIES.find(cat => cat.id === categoryId) || null;
+  };
   
   return (
     <>
@@ -135,44 +151,61 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
             
             {session.slots.length > 0 ? (
               <div className="space-y-3 mt-4">
-                {session.slots.map((slot, index) => (
-                  <div 
-                    key={slot.id}
-                    className={cn(
-                      "flex items-start gap-2 p-3 rounded-md relative group",
-                      SLOT_GRADIENTS[index % SLOT_GRADIENTS.length]
-                    )}
-                  >
-                    <User className="h-4 w-4 text-primary mt-0.5" />
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{slot.topic}</div>
-                      <div className="text-xs text-muted-foreground">By {slot.attendee}</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {formatTime(slot.startTime)} - {formatTime(slot.endTime)} 
-                        ({differenceInMinutes(slot.endTime, slot.startTime)} min)
+                {session.slots.map((slot, index) => {
+                  const slotCategory = getCategoryById(slot.category);
+                  const CategoryIcon = slotCategory?.icon;
+                  
+                  return (
+                    <div 
+                      key={slot.id}
+                      className={cn(
+                        "flex items-start gap-2 p-3 rounded-md relative group",
+                        SLOT_GRADIENTS[index % SLOT_GRADIENTS.length]
+                      )}
+                    >
+                      <User className="h-4 w-4 text-primary mt-0.5" />
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{slot.topic}</div>
+                        <div className="text-xs text-muted-foreground">By {slot.attendee}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {formatTime(slot.startTime)} - {formatTime(slot.endTime)} 
+                          ({differenceInMinutes(slot.endTime, slot.startTime)} min)
+                        </div>
+                        
+                        {slotCategory && (
+                          <div className="mt-1.5">
+                            <span className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded-full text-xs gap-1",
+                              slotCategory.color
+                            )}>
+                              {CategoryIcon && <CategoryIcon className="h-3 w-3" />}
+                              {slotCategory.label}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7"
+                          onClick={() => handleEdit(slot.id)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7 text-destructive"
+                          onClick={() => handleDeleteClick(slot.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </div>
-                    
-                    <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-7 w-7"
-                        onClick={() => handleEdit(slot.id)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-7 w-7 text-destructive"
-                        onClick={() => handleDeleteClick(slot.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : null}
             
@@ -227,6 +260,27 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label>Relevant to</Label>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIES.map(cat => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setCategory(cat.id === category ? null : cat.id)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors",
+                      category === cat.id 
+                        ? cat.color
+                        : "bg-muted hover:bg-muted/80"
+                    )}
+                  >
+                    <cat.icon className="h-3.5 w-3.5" />
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="grid gap-2">
               <div className="flex justify-between">

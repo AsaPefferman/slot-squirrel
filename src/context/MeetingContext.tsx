@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { addDays, startOfWeek, format, isSameDay, addWeeks, subWeeks, getDay, setHours, setMinutes, differenceInMinutes } from 'date-fns';
 import { calculateAvailableMinutes } from '@/utils/dateUtils';
@@ -9,6 +8,7 @@ export interface TimeSlot {
   endTime: Date;
   attendee: string | null;
   topic: string | null;
+  category: string | null;
 }
 
 export interface Session {
@@ -26,7 +26,7 @@ interface MeetingContextType {
   canceledDates: Date[];
   navigateToNextWeek: () => void;
   navigateToPreviousWeek: () => void;
-  signUpForSlot: (sessionId: string, startTime: Date, endTime: Date, name: string, topic: string) => void;
+  signUpForSlot: (sessionId: string, startTime: Date, endTime: Date, name: string, topic: string, category: string | null) => void;
   cancelSignUp: (slotId: string) => void;
   cancelSession: (date: Date, restore?: boolean) => void;
   isCurrentWeekInFuture: boolean;
@@ -137,7 +137,8 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
             startTime: new Date(slotData.startTime),
             endTime: new Date(slotData.endTime),
             attendee: slotData.attendee,
-            topic: slotData.topic
+            topic: slotData.topic,
+            category: slotData.category || null
           });
         });
       } catch (e) {
@@ -156,7 +157,7 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setCurrentWeek(prevWeek => subWeeks(prevWeek, 1));
   };
   
-  const signUpForSlot = (sessionId: string, startTime: Date, endTime: Date, name: string, topic: string) => {
+  const signUpForSlot = (sessionId: string, startTime: Date, endTime: Date, name: string, topic: string, category: string | null = null) => {
     const slotId = `slot-${format(startTime, 'yyyy-MM-dd')}-${format(startTime, 'HH-mm')}-${format(endTime, 'HH-mm')}`;
     
     const newSlot: TimeSlot = {
@@ -164,7 +165,8 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       startTime: new Date(startTime),
       endTime: new Date(endTime),
       attendee: name,
-      topic: topic
+      topic: topic,
+      category: category
     };
     
     // Update sessions
@@ -193,7 +195,8 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           startTime: slot.startTime.toISOString(),
           endTime: slot.endTime.toISOString(),
           attendee: slot.attendee,
-          topic: slot.topic
+          topic: slot.topic,
+          category: slot.category
         }))
       }));
     }
@@ -237,7 +240,8 @@ export const MeetingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           startTime: slot.startTime.toISOString(),
           endTime: slot.endTime.toISOString(),
           attendee: slot.attendee,
-          topic: slot.topic
+          topic: slot.topic,
+          category: slot.category
         }))
       }));
     }
