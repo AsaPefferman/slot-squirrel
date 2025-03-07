@@ -9,7 +9,6 @@ import { addDays } from 'date-fns';
 import SessionCard from '@/components/SessionCard';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { cn } from '@/lib/utils';
-import SessionManagement from '@/components/SessionManagement';
 
 const WeeklyCalendar: React.FC = () => {
   const { 
@@ -47,8 +46,6 @@ const WeeklyCalendar: React.FC = () => {
             <ChevronRight className="h-5 w-5" />
           </Button>
         </div>
-        
-        <SessionManagement />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
