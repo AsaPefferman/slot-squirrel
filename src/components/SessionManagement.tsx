@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +13,7 @@ import { CalendarIcon, X } from 'lucide-react';
 import { useMeetingContext } from '@/context/MeetingContext';
 import { formatDate } from '@/utils/dateUtils';
 import { addDays, format, isSameDay, startOfDay } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const SessionManagement: React.FC = () => {
   const [open, setOpen] = useState(false);
